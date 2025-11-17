@@ -8,104 +8,104 @@ import os
 import re
 from datetime import datetime
 
-def analyze_logs(log_file):
+def analyze_logs(log_file_path):
     """Analyze log file for errors - INEFFICIENT VERSION"""
     
     # Inefficiency 1: Reading entire file into memory
-    with open(log_file, 'r') as f:
-        all_lines = f.readlines()
+    with open(log_file_path, 'r') as log_file_handle:
+        all_log_lines = log_file_handle.readlines()
     
-    errors = []
-    warnings = []
-    info = []
+    error_messages = []
+    warning_messages = []
+    info_messages = []
     
     # Inefficiency 2: Multiple passes over the same data
-    for line in all_lines:
-        if 'ERROR' in line:
-            errors.append(line)
+    for log_line in all_log_lines:
+        if 'ERROR' in log_line:
+            error_messages.append(log_line)
     
-    for line in all_lines:
-        if 'WARNING' in line:
-            warnings.append(line)
+    for log_line in all_log_lines:
+        if 'WARNING' in log_line:
+            warning_messages.append(log_line)
     
-    for line in all_lines:
-        if 'INFO' in line:
-            info.append(line)
+    for log_line in all_log_lines:
+        if 'INFO' in log_line:
+            info_messages.append(log_line)
     
     # Inefficiency 3: Inefficient string concatenation in loop
-    report = ""
-    report += "="*50 + "\n"
-    report += "Log Analysis Report\n"
-    report += "="*50 + "\n"
-    report += f"Total Errors: {len(errors)}\n"
-    report += f"Total Warnings: {len(warnings)}\n"
-    report += f"Total Info: {len(info)}\n"
-    report += "="*50 + "\n"
+    analysis_report = ""
+    analysis_report += "="*50 + "\n"
+    analysis_report += "Log Analysis Report\n"
+    analysis_report += "="*50 + "\n"
+    analysis_report += f"Total Errors: {len(error_messages)}\n"
+    analysis_report += f"Total Warnings: {len(warning_messages)}\n"
+    analysis_report += f"Total Info: {len(info_messages)}\n"
+    analysis_report += "="*50 + "\n"
     
     # Inefficiency 4: Nested loops with O(n²) complexity
-    duplicate_errors = []
-    for i in range(len(errors)):
-        for j in range(i+1, len(errors)):
-            if errors[i] == errors[j]:
-                if errors[i] not in duplicate_errors:
-                    duplicate_errors.append(errors[i])
+    duplicate_error_messages = []
+    for error_index in range(len(error_messages)):
+        for comparison_index in range(error_index+1, len(error_messages)):
+            if error_messages[error_index] == error_messages[comparison_index]:
+                if error_messages[error_index] not in duplicate_error_messages:
+                    duplicate_error_messages.append(error_messages[error_index])
     
-    report += f"Duplicate Errors: {len(duplicate_errors)}\n"
+    analysis_report += f"Duplicate Errors: {len(duplicate_error_messages)}\n"
     
     # Inefficiency 5: Using regex in tight loop
-    error_codes = []
-    for error in errors:
-        match = re.search(r'ERROR\s+(\d+)', error)
-        if match:
-            error_codes.append(match.group(1))
+    extracted_error_codes = []
+    for error_message in error_messages:
+        error_code_match = re.search(r'ERROR\s+(\d+)', error_message)
+        if error_code_match:
+            extracted_error_codes.append(error_code_match.group(1))
     
     # Inefficiency 6: Sorting without considering memory
-    sorted_errors = sorted(errors)
-    sorted_warnings = sorted(warnings)
+    sorted_error_messages = sorted(error_messages)
+    sorted_warning_messages = sorted(warning_messages)
     
-    return report
+    return analysis_report
 
-def find_log_files(directory):
+def find_log_files(search_directory):
     """Find all log files - INEFFICIENT VERSION"""
     
     # Inefficiency 7: Walking entire directory tree multiple times
-    log_files = []
+    discovered_log_files = []
     
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.log'):
-                log_files.append(os.path.join(root, file))
+    for root_directory, subdirectories, filenames in os.walk(search_directory):
+        for current_filename in filenames:
+            if current_filename.endswith('.log'):
+                discovered_log_files.append(os.path.join(root_directory, current_filename))
     
     # Inefficiency 8: Checking file sizes inefficiently
-    large_logs = []
-    for log_file in log_files:
-        size = os.path.getsize(log_file)
-        if size > 1000000:  # 1MB
-            large_logs.append(log_file)
+    large_log_files = []
+    for log_file_path in discovered_log_files:
+        file_size_bytes = os.path.getsize(log_file_path)
+        if file_size_bytes > 1000000:  # 1MB
+            large_log_files.append(log_file_path)
     
     # Inefficiency 9: Another pass for file age
-    old_logs = []
-    for log_file in log_files:
-        mtime = os.path.getmtime(log_file)
-        if (datetime.now().timestamp() - mtime) > 86400 * 7:  # 7 days
-            old_logs.append(log_file)
+    old_log_files = []
+    for log_file_path in discovered_log_files:
+        file_modification_time = os.path.getmtime(log_file_path)
+        if (datetime.now().timestamp() - file_modification_time) > 86400 * 7:  # 7 days
+            old_log_files.append(log_file_path)
     
-    return log_files, large_logs, old_logs
+    return discovered_log_files, large_log_files, old_log_files
 
-def process_all_logs(directory):
+def process_all_logs(search_directory):
     """Process all logs in directory - INEFFICIENT VERSION"""
     
-    log_files, large_logs, old_logs = find_log_files(directory)
+    discovered_log_files, large_log_files, old_log_files = find_log_files(search_directory)
     
     # Inefficiency 10: Processing files sequentially without considering I/O
-    results = {}
-    for log_file in log_files:
+    analysis_results = {}
+    for log_file_path in discovered_log_files:
         try:
-            results[log_file] = analyze_logs(log_file)
-        except Exception as e:
-            print(f"Error processing {log_file}: {e}")
+            analysis_results[log_file_path] = analyze_logs(log_file_path)
+        except Exception as error_exception:
+            print(f"Error processing {log_file_path}: {error_exception}")
     
-    return results
+    return analysis_results
 
 if __name__ == "__main__":
     # Example usage

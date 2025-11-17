@@ -8,32 +8,32 @@ while true; do
     echo "Timestamp: $(date)" >> /var/log/server_monitor.log
     
     # Inefficiency 2: Multiple separate grep calls instead of single awk/parsing
-    cpu_usage=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
-    mem_free=$(free | grep Mem | awk '{print $4}')
-    mem_total=$(free | grep Mem | awk '{print $2}')
-    mem_used=$(free | grep Mem | awk '{print $3}')
+    cpu_usage_percent=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    memory_free_kb=$(free | grep Mem | awk '{print $4}')
+    memory_total_kb=$(free | grep Mem | awk '{print $2}')
+    memory_used_kb=$(free | grep Mem | awk '{print $3}')
     
     # Inefficiency 3: Multiple disk usage calls
-    disk_root=$(df -h / | tail -1 | awk '{print $5}')
-    disk_home=$(df -h /home | tail -1 | awk '{print $5}')
-    disk_var=$(df -h /var | tail -1 | awk '{print $5}')
+    disk_usage_root_percent=$(df -h / | tail -1 | awk '{print $5}')
+    disk_usage_home_percent=$(df -h /home | tail -1 | awk '{print $5}')
+    disk_usage_var_percent=$(df -h /var | tail -1 | awk '{print $5}')
     
     # Inefficiency 4: String concatenation in loop
-    log_line=""
-    log_line="${log_line}CPU: ${cpu_usage}% "
-    log_line="${log_line}| Mem Used: ${mem_used} "
-    log_line="${log_line}| Mem Free: ${mem_free} "
-    log_line="${log_line}| Disk /: ${disk_root} "
-    log_line="${log_line}| Disk /home: ${disk_home} "
-    log_line="${log_line}| Disk /var: ${disk_var}"
+    monitoring_log_entry=""
+    monitoring_log_entry="${monitoring_log_entry}CPU: ${cpu_usage_percent}% "
+    monitoring_log_entry="${monitoring_log_entry}| Mem Used: ${memory_used_kb} "
+    monitoring_log_entry="${monitoring_log_entry}| Mem Free: ${memory_free_kb} "
+    monitoring_log_entry="${monitoring_log_entry}| Disk /: ${disk_usage_root_percent} "
+    monitoring_log_entry="${monitoring_log_entry}| Disk /home: ${disk_usage_home_percent} "
+    monitoring_log_entry="${monitoring_log_entry}| Disk /var: ${disk_usage_var_percent}"
     
-    echo "$log_line" >> /var/log/server_monitor.log
+    echo "$monitoring_log_entry" >> /var/log/server_monitor.log
     
     # Inefficiency 5: Checking for processes inefficiently
-    for proc in apache2 nginx mysql postgresql; do
-        ps aux | grep $proc | grep -v grep > /dev/null
+    for process_name in apache2 nginx mysql postgresql; do
+        ps aux | grep $process_name | grep -v grep > /dev/null
         if [ $? -eq 0 ]; then
-            echo "Process $proc is running" >> /var/log/server_monitor.log
+            echo "Process $process_name is running" >> /var/log/server_monitor.log
         fi
     done
     

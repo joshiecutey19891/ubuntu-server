@@ -12,142 +12,142 @@ from datetime import datetime
 class BackupManager:
     """Manages server backups with inefficient implementations"""
     
-    def __init__(self, source_dir, backup_dir):
-        self.source_dir = source_dir
-        self.backup_dir = backup_dir
+    def __init__(self, source_directory, backup_directory):
+        self.source_dir_path = source_directory
+        self.backup_dir_path = backup_directory
     
-    def calculate_checksum(self, filepath):
+    def calculate_checksum(self, file_path):
         """Calculate MD5 checksum - INEFFICIENT"""
         
         # Inefficiency 1: Reading entire file into memory
-        with open(filepath, 'rb') as f:
-            data = f.read()
-            return hashlib.md5(data).hexdigest()
+        with open(file_path, 'rb') as file_handle:
+            file_data = file_handle.read()
+            return hashlib.md5(file_data).hexdigest()
     
-    def compare_files(self, file1, file2):
+    def compare_files(self, first_file_path, second_file_path):
         """Compare two files - INEFFICIENT"""
         
         # Inefficiency 2: Byte-by-byte comparison without buffering
-        with open(file1, 'rb') as f1, open(file2, 'rb') as f2:
-            byte1 = f1.read(1)
-            byte2 = f2.read(1)
+        with open(first_file_path, 'rb') as first_file_handle, open(second_file_path, 'rb') as second_file_handle:
+            first_byte = first_file_handle.read(1)
+            second_byte = second_file_handle.read(1)
             
-            while byte1 and byte2:
-                if byte1 != byte2:
+            while first_byte and second_byte:
+                if first_byte != second_byte:
                     return False
-                byte1 = f1.read(1)
-                byte2 = f2.read(1)
+                first_byte = first_file_handle.read(1)
+                second_byte = second_file_handle.read(1)
             
-            return byte1 == byte2
+            return first_byte == second_byte
     
-    def find_duplicates(self, directory):
+    def find_duplicates(self, search_directory):
         """Find duplicate files - INEFFICIENT"""
         
         # Inefficiency 3: Storing all file contents in memory
-        files_dict = {}
+        checksum_to_files_dict = {}
         
-        for root, dirs, files in os.walk(directory):
-            for filename in files:
-                filepath = os.path.join(root, filename)
+        for root_directory, subdirectories, filenames in os.walk(search_directory):
+            for current_filename in filenames:
+                file_path = os.path.join(root_directory, current_filename)
                 
                 # Inefficiency 4: Multiple passes for same operation
-                size = os.path.getsize(filepath)
-                checksum = self.calculate_checksum(filepath)
+                file_size_bytes = os.path.getsize(file_path)
+                file_checksum = self.calculate_checksum(file_path)
                 
-                if checksum not in files_dict:
-                    files_dict[checksum] = []
-                files_dict[checksum].append(filepath)
+                if file_checksum not in checksum_to_files_dict:
+                    checksum_to_files_dict[file_checksum] = []
+                checksum_to_files_dict[file_checksum].append(file_path)
         
         # Inefficiency 5: Creating new lists unnecessarily
-        duplicates = []
-        for checksum, paths in files_dict.items():
-            if len(paths) > 1:
-                for path in paths:
-                    duplicates.append(path)
+        duplicate_file_paths = []
+        for file_checksum, file_paths in checksum_to_files_dict.items():
+            if len(file_paths) > 1:
+                for file_path in file_paths:
+                    duplicate_file_paths.append(file_path)
         
-        return duplicates
+        return duplicate_file_paths
     
-    def backup_directory(self, incremental=False):
+    def backup_directory(self, is_incremental_backup=False):
         """Backup directory - INEFFICIENT"""
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_path = os.path.join(self.backup_dir, f"backup_{timestamp}")
+        backup_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        target_backup_path = os.path.join(self.backup_dir_path, f"backup_{backup_timestamp}")
         
-        if not incremental:
+        if not is_incremental_backup:
             # Inefficiency 6: Full copy without checking if files changed
-            shutil.copytree(self.source_dir, backup_path)
+            shutil.copytree(self.source_dir_path, target_backup_path)
         else:
             # Inefficiency 7: Inefficient incremental backup
-            os.makedirs(backup_path, exist_ok=True)
+            os.makedirs(target_backup_path, exist_ok=True)
             
-            for root, dirs, files in os.walk(self.source_dir):
-                for filename in files:
-                    src_file = os.path.join(root, filename)
-                    rel_path = os.path.relpath(src_file, self.source_dir)
-                    dst_file = os.path.join(backup_path, rel_path)
+            for root_directory, subdirectories, filenames in os.walk(self.source_dir_path):
+                for current_filename in filenames:
+                    source_file_path = os.path.join(root_directory, current_filename)
+                    relative_file_path = os.path.relpath(source_file_path, self.source_dir_path)
+                    destination_file_path = os.path.join(target_backup_path, relative_file_path)
                     
                     # Inefficiency 8: Creating directory for each file
-                    os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+                    os.makedirs(os.path.dirname(destination_file_path), exist_ok=True)
                     
                     # Inefficiency 9: Copying without checking modification time
-                    shutil.copy2(src_file, dst_file)
+                    shutil.copy2(source_file_path, destination_file_path)
     
-    def cleanup_old_backups(self, keep_days=7):
+    def cleanup_old_backups(self, retention_days=7):
         """Remove old backups - INEFFICIENT"""
         
         # Inefficiency 10: Multiple directory scans
-        all_backups = []
-        for item in os.listdir(self.backup_dir):
-            full_path = os.path.join(self.backup_dir, item)
-            if os.path.isdir(full_path):
-                all_backups.append(full_path)
+        all_backup_paths = []
+        for directory_item in os.listdir(self.backup_dir_path):
+            full_directory_path = os.path.join(self.backup_dir_path, directory_item)
+            if os.path.isdir(full_directory_path):
+                all_backup_paths.append(full_directory_path)
         
         # Inefficiency 11: Sorting with custom comparison
-        backup_times = []
-        for backup in all_backups:
-            mtime = os.path.getmtime(backup)
-            backup_times.append((mtime, backup))
+        backup_modification_times = []
+        for backup_path in all_backup_paths:
+            modification_timestamp = os.path.getmtime(backup_path)
+            backup_modification_times.append((modification_timestamp, backup_path))
         
-        backup_times.sort()
+        backup_modification_times.sort()
         
         # Inefficiency 12: Calculating cutoff in loop
-        cutoff = datetime.now().timestamp() - (keep_days * 86400)
+        age_cutoff_timestamp = datetime.now().timestamp() - (retention_days * 86400)
         
-        for mtime, backup in backup_times:
-            if mtime < cutoff:
+        for modification_timestamp, backup_path in backup_modification_times:
+            if modification_timestamp < age_cutoff_timestamp:
                 # Inefficiency 13: Recursive deletion without error handling
-                shutil.rmtree(backup)
+                shutil.rmtree(backup_path)
     
     def generate_report(self):
         """Generate backup report - INEFFICIENT"""
         
         # Inefficiency 14: String concatenation in loop
-        report = ""
-        report += "Backup Report\n"
-        report += "=" * 50 + "\n"
+        backup_report = ""
+        backup_report += "Backup Report\n"
+        backup_report += "=" * 50 + "\n"
         
         # Inefficiency 15: Multiple scans of same directory
-        total_size = 0
-        file_count = 0
+        total_size_bytes = 0
+        total_file_count = 0
         
-        for root, dirs, files in os.walk(self.backup_dir):
-            for filename in files:
-                filepath = os.path.join(root, filename)
-                total_size += os.path.getsize(filepath)
-                file_count += 1
+        for root_directory, subdirectories, filenames in os.walk(self.backup_dir_path):
+            for current_filename in filenames:
+                file_path = os.path.join(root_directory, current_filename)
+                total_size_bytes += os.path.getsize(file_path)
+                total_file_count += 1
         
-        report += f"Total Files: {file_count}\n"
-        report += f"Total Size: {total_size} bytes\n"
+        backup_report += f"Total Files: {total_file_count}\n"
+        backup_report += f"Total Size: {total_size_bytes} bytes\n"
         
         # Another pass for backups count
-        backup_count = 0
-        for item in os.listdir(self.backup_dir):
-            if os.path.isdir(os.path.join(self.backup_dir, item)):
-                backup_count += 1
+        backup_directory_count = 0
+        for directory_item in os.listdir(self.backup_dir_path):
+            if os.path.isdir(os.path.join(self.backup_dir_path, directory_item)):
+                backup_directory_count += 1
         
-        report += f"Number of Backups: {backup_count}\n"
+        backup_report += f"Number of Backups: {backup_directory_count}\n"
         
-        return report
+        return backup_report
 
 if __name__ == "__main__":
     print("Backup Manager - Inefficient Version")

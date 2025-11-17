@@ -7,51 +7,51 @@ INTERVAL=5
 
 monitor_once() {
     # Optimization 1: Single date call, stored in variable
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local current_timestamp
+    current_timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
     # Optimization 2: Parse all memory stats in single awk pass
-    local mem_total mem_used mem_free
-    read -r mem_total mem_used mem_free <<< "$(free | awk '/Mem:/ {print $2, $3, $4}')"
+    local memory_total_kb memory_used_kb memory_free_kb
+    read -r memory_total_kb memory_used_kb memory_free_kb <<< "$(free | awk '/Mem:/ {print $2, $3, $4}')"
     
     # Optimization 3: Single df call for all mount points, parse with awk
-    local disk_root disk_home disk_var
-    read -r disk_root disk_home disk_var <<< "$(df -h / /home /var 2>/dev/null | awk 'NR>1 {gsub(/%/,"",$5); print $5}' | xargs)"
+    local disk_usage_root_percent disk_usage_home_percent disk_usage_var_percent
+    read -r disk_usage_root_percent disk_usage_home_percent disk_usage_var_percent <<< "$(df -h / /home /var 2>/dev/null | awk 'NR>1 {gsub(/%/,"",$5); print $5}' | xargs)"
     
     # Optimization 4: Improved CPU usage calculation with single top call
-    cpu_usage=$(top -bn1 | awk '/^%Cpu/ {print 100-$8}')
+    cpu_usage_percent=$(top -bn1 | awk '/^%Cpu/ {print 100-$8}')
     
     # Optimization 5: Use pgrep for efficient process checking
-    local processes=""
-    for proc in apache2 nginx mysql postgresql; do
-        if pgrep -x "$proc" > /dev/null 2>&1; then
-            processes+="$proc "
+    local running_processes_list=""
+    for process_name in apache2 nginx mysql postgresql; do
+        if pgrep -x "$process_name" > /dev/null 2>&1; then
+            running_processes_list+="$process_name "
         fi
     done
     
     # Optimization 6: Single printf for efficient string formatting
     printf "[%s] CPU: %.1f%% | Mem: %s/%s (%s free) | Disk /: %s%% /home: %s%% /var: %s%% | Running: %s\n" \
-        "$timestamp" "$cpu_usage" "$mem_used" "$mem_total" "$mem_free" \
-        "$disk_root" "$disk_home" "$disk_var" "${processes:-none}" >> "$LOG_FILE"
+        "$current_timestamp" "$cpu_usage_percent" "$memory_used_kb" "$memory_total_kb" "$memory_free_kb" \
+        "$disk_usage_root_percent" "$disk_usage_home_percent" "$disk_usage_var_percent" "${running_processes_list:-none}" >> "$LOG_FILE"
 }
 
 # Optimization 7: Calculate next execution based on start time to avoid drift
 main_loop() {
     while true; do
-        local start_time
-        start_time=$(date +%s)
+        local monitoring_start_time
+        monitoring_start_time=$(date +%s)
         
         monitor_once
         
         # Calculate time taken and adjust sleep
-        local end_time
-        end_time=$(date +%s)
-        local elapsed=$((end_time - start_time))
-        local sleep_time=$((INTERVAL - elapsed))
+        local monitoring_end_time
+        monitoring_end_time=$(date +%s)
+        local elapsed_seconds=$((monitoring_end_time - monitoring_start_time))
+        local remaining_sleep_time=$((INTERVAL - elapsed_seconds))
         
         # Sleep only if there's time left in the interval
-        if [ $sleep_time -gt 0 ]; then
-            sleep $sleep_time
+        if [ $remaining_sleep_time -gt 0 ]; then
+            sleep $remaining_sleep_time
         fi
     done
 }
